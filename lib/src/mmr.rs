@@ -17,9 +17,9 @@ use starknet_types_core::{
 
 #[derive(Serialize, Deserialize)]
 pub struct MmrMeta {
-    root: Felt,
-    size: u128,
-    peaks: Vec<Felt>,
+    pub root: Felt,
+    pub size: u128,
+    pub peaks: Vec<Felt>,
 }
 
 impl MmrMeta {
@@ -181,14 +181,14 @@ pub fn elements_count_to_leaf_count(elements_count: usize) -> Result<usize, Box<
 
 #[derive(Serialize, Deserialize)]
 pub struct Header {
-    rlp: Vec<Felt>,
-    proof: HeaderInclusionProof,
+    pub rlp: Vec<Felt>,
+    pub proof: HeaderInclusionProof,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct HeaderInclusionProof {
-    leaf_idx: u128,
-    mmr_path: Vec<Felt>,
+    pub leaf_idx: u128,
+    pub mmr_path: Vec<Felt>,
 }
 
 pub fn verify_headers_with_mmr_peaks(mmr: MmrMeta, header: Header) -> Result<bool, Box<dyn Error>> {
