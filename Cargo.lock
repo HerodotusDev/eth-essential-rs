@@ -1726,18 +1726,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
-name = "fibonacci-lib"
-version = "0.1.0"
-dependencies = [
- "alloy-sol-types",
-]
-
-[[package]]
 name = "fibonacci-program"
 version = "0.1.0"
 dependencies = [
  "alloy-sol-types",
- "fibonacci-lib",
+ "hdp-lib",
  "sp1-zkvm",
 ]
 
@@ -1747,7 +1740,7 @@ version = "0.1.0"
 dependencies = [
  "alloy-sol-types",
  "clap",
- "fibonacci-lib",
+ "hdp-lib",
  "hex",
  "serde",
  "serde_json",
@@ -2107,6 +2100,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2bca93b15ea5a746f220e56587f71e73c6165eab783df9e26590069953e3c30"
 dependencies = [
  "fxhash",
+]
+
+[[package]]
+name = "hdp-lib"
+version = "0.1.0"
+dependencies = [
+ "alloy-sol-types",
+ "serde",
+ "starknet-types-core",
+ "thiserror",
 ]
 
 [[package]]
@@ -2576,6 +2579,28 @@ checksum = "422fbc7ff2f2f5bdffeb07718e5a5324dca72b0c9293d50df4026652385e3314"
 dependencies = [
  "digest 0.10.7",
  "sha3-asm",
+]
+
+[[package]]
+name = "lambdaworks-crypto"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fb5d4f22241504f7c7b8d2c3a7d7835d7c07117f10bff2a7d96a9ef6ef217c3"
+dependencies = [
+ "lambdaworks-math",
+ "serde",
+ "sha2",
+ "sha3",
+]
+
+[[package]]
+name = "lambdaworks-math"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "358e172628e713b80a530a59654154bfc45783a6ed70ea284839800cebdf8f97"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5176,6 +5201,20 @@ dependencies = [
  "libc",
  "psm",
  "winapi",
+]
+
+[[package]]
+name = "starknet-types-core"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b889ee5734db8b3c8a6551135c16764bf4ce1ab4955fffbb2ac5b6706542b64"
+dependencies = [
+ "lambdaworks-crypto",
+ "lambdaworks-math",
+ "num-bigint 0.4.6",
+ "num-integer",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]

@@ -8,23 +8,18 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use alloy_sol_types::SolType;
-use fibonacci_lib::{fibonacci, PublicValuesStruct};
+use hdp_lib::mmr::{verify_headers_with_mmr_peaks, Header, MmrMeta};
 
 pub fn main() {
     // Read an input to the program.
     //
     // Behind the scenes, this compiles down to a custom system call which handles reading inputs
     // from the prover.
-    let n = sp1_zkvm::io::read::<u32>();
+    let header = sp1_zkvm::io::read::<Header>();
+    let mmr = sp1_zkvm::io::read::<MmrMeta>();
 
-    // Compute the n'th fibonacci number using a function from the workspace lib crate.
-    let (a, b) = fibonacci(n);
-
-    // Encode the public values of the program.
-    let bytes = PublicValuesStruct::abi_encode(&PublicValuesStruct { n, a, b });
-
-    // Commit to the public values of the program. The final proof will have a commitment to all the
-    // bytes that were committed to.
-    sp1_zkvm::io::commit_slice(&bytes);
+    let is_valid = verify_headers_with_mmr_peaks(mmr, header).unwrap();
+    if is_valid {
+        sp1_zkvm::io::commit_slice(&[1]);
+    }
 }
