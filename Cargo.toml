@@ -4,3 +4,4 @@ resolver = "2"
 
 [workspace.dependencies]
 alloy-sol-types = "0.7.7"
+alloy-primitives = { version = "0.8" }

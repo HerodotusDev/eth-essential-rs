@@ -8,7 +8,9 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use hdp_lib::mmr::{verify_headers_with_mmr_peaks, Header, MmrMeta};
+// turn on off hashser for now
+// use hdp_lib::mmr::{verify_headers_with_mmr_peaks, Header, MmrMeta};
+use hdp_lib::mmr_keccak::{verify_headers_with_mmr_peaks, Header, MmrMeta};
 
 pub fn main() {
     // Read an input to the program.
