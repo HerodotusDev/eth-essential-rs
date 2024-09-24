@@ -15,6 +15,12 @@ use serde::{Deserialize, Serialize};
 use crate::hash::{Hash, Keccak256};
 
 #[derive(Serialize, Deserialize)]
+pub struct MmrJson {
+    pub meta: MmrMeta,
+    pub headers: Vec<Header>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct MmrMeta {
     pub root: B256,
     pub size: u128,
