@@ -11,12 +11,8 @@
 //! ```
 
 use clap::Parser;
-use hdp_lib::mmr::Header;
-use hdp_lib::mmr::HeaderInclusionProof;
-use hdp_lib::mmr::MmrMeta;
 use hdp_lib::mmr_keccak::MmrJson;
 use sp1_sdk::{ProverClient, SP1Stdin};
-use starknet_types_core::felt::Felt;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 pub const FIBONACCI_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");

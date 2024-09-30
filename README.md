@@ -1,12 +1,11 @@
 ### Building blocks
 
-- [ ] MMR validation
-- [ ] Header verification - MMR proof
+- [x] Header verification - MMR proof
 - [ ] Account verification - MPT proof
 - [ ] Storage verification - MPT proof
 - [ ] Tx / Receipt verification - MPT proof
 
-## funfact
+## funfact - mmr
 
 ### keccak (precompile)
 
