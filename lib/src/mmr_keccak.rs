@@ -198,9 +198,20 @@ pub struct HeaderInclusionProof {
     pub mmr_path: Vec<B256>,
 }
 
-pub fn verify_headers_with_mmr_peaks(mmr: MmrMeta, header: Header) -> Result<bool, Box<dyn Error>> {
-    let element_value = Keccak256::hash_key(header.rlp.as_bytes().to_vec());
-    mmr.verify_proof(header.proof.leaf_idx, element_value, header.proof.mmr_path)
+pub fn verify_headers_with_mmr_peaks(
+    mmr: MmrMeta,
+    headers: &[Header],
+) -> Result<bool, Box<dyn Error>> {
+    let mut is_verified = true;
+    for header in headers {
+        let element_value = Keccak256::hash_key(header.rlp.as_bytes().to_vec());
+        is_verified = mmr.verify_proof(
+            header.proof.leaf_idx,
+            element_value,
+            header.proof.mmr_path.clone(),
+        )?;
+    }
+    Ok(is_verified)
 }
 
 pub fn validate_mmr(mmr: MmrMeta) {

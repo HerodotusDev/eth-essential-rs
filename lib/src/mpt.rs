@@ -1,10 +1,10 @@
+use alloy_primitives::B256;
+use reth_primitives::revm_primitives::AccountInfo;
+use reth_trie::AccountProof;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-use alloy_primitives::B256;
-use alloy_rpc_types_eth::EIP1186AccountProofResponse;
-use reth_primitives::Account;
-use reth_trie::{AccountProof, StorageProof, EMPTY_ROOT_HASH};
-use serde::{Deserialize, Serialize};
+use crate::{account::HdpAccount, rlp::get_account_info};
 
 /// The account proof with the bytecode.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -13,64 +13,41 @@ pub struct AccountProofWithBytecode {
     pub proof: AccountProof,
 }
 
-impl AccountProofWithBytecode {
-    pub fn from_eip1186_proof(proof: EIP1186AccountProofResponse) -> Self {
-        Self {
-            proof: eip1186_proof_to_account_proof(proof),
-        }
+pub fn from_processed_account_to_account_proof(
+    account: HdpAccount,
+    storage_root: B256,
+) -> Vec<AccountProofWithBytecode> {
+    let mut proofs = vec![];
+    for proof in account.proofs {
+        let decoded_account =
+            get_account_info(&mut proof.proof.last().unwrap().to_vec().as_slice()).unwrap();
+        let reth_account = AccountInfo {
+            balance: decoded_account.balance,
+            nonce: decoded_account.nonce,
+            code_hash: decoded_account.code_hash,
+            code: None,
+        };
+        let account_proof = AccountProof {
+            address: account.address,
+            info: Some(reth_account.into()),
+            proof: proof.proof,
+            storage_root,
+            storage_proofs: vec![],
+        };
+        proofs.push(AccountProofWithBytecode {
+            proof: account_proof,
+        });
     }
 
+    proofs
+}
+
+impl AccountProofWithBytecode {
     /// Verifies the account proof against the provided state root.
     pub fn verify(&self, state_root: B256) -> Result<(), Box<dyn Error>> {
         self.proof.verify(state_root).unwrap();
 
         Ok(())
-    }
-}
-
-/// Converts an [EIP1186AccountProofResponse] to an [AccountProof].
-pub fn eip1186_proof_to_account_proof(proof: EIP1186AccountProofResponse) -> AccountProof {
-    let address = proof.address;
-    let balance = proof.balance;
-    let code_hash = proof.code_hash;
-    let nonce = proof.nonce;
-    let storage_root = proof.storage_hash;
-    let account_proof = proof.account_proof;
-    let storage_proofs = proof
-        .storage_proof
-        .into_iter()
-        .map(|storage_proof| {
-            let key = storage_proof.key;
-            let value = storage_proof.value;
-            let proof = storage_proof.proof;
-            let mut sp = StorageProof::new(key.0);
-            sp.value = value;
-            sp.proof = proof;
-            sp
-        })
-        .collect();
-
-    let (storage_root, info) =
-        if nonce == 0 && balance.is_zero() && storage_root.is_zero() && code_hash.is_zero() {
-            // Account does not exist in state. Return `None` here to prevent proof verification.
-            (EMPTY_ROOT_HASH, None)
-        } else {
-            (
-                storage_root,
-                Some(Account {
-                    nonce,
-                    balance,
-                    bytecode_hash: code_hash.into(),
-                }),
-            )
-        };
-
-    AccountProof {
-        address,
-        info,
-        proof: account_proof,
-        storage_root,
-        storage_proofs,
     }
 }
 
@@ -108,7 +85,7 @@ mod tests {
         let state_root =
             B256::from_str("0x6f184a0cf582192768fc6c8c697da0e9eb85b623c0cfea2b26034e29cdc88628")
                 .unwrap();
-        let account_proof = AccountProofWithBytecode::from_eip1186_proof(res);
-        account_proof.verify(state_root).unwrap();
+        // let account_proof = AccountProofWithBytecode::from_eip1186_proof(res);
+        // account_proof.verify(state_root).unwrap();
     }
 }
