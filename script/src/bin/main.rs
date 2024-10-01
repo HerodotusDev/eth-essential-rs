@@ -11,7 +11,7 @@
 //! ```
 
 use clap::Parser;
-use hdp_lib::mmr_keccak::MmrJson;
+use hdp_lib::json::MmrJson;
 use sp1_sdk::{ProverClient, SP1Stdin};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -252,7 +252,8 @@ fn main() {
     //     },
     // };
 
-    stdin.write(&fixture.headers[0]);
+    stdin.write(&fixture.accounts[0]);
+    stdin.write(&fixture.headers);
     stdin.write(&fixture.meta);
 
     // println!("n: {}", args.n);

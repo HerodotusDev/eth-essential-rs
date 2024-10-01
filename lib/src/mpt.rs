@@ -53,9 +53,6 @@ impl AccountProofWithBytecode {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use super::*;
     use alloy_primitives::U256;
     use alloy_rpc_types_eth::EIP1186AccountProofResponse;
     use reth_primitives::{address, b256, bytes};
@@ -82,9 +79,9 @@ mod tests {
             storage_proof: vec![],
         };
 
-        let state_root =
-            B256::from_str("0x6f184a0cf582192768fc6c8c697da0e9eb85b623c0cfea2b26034e29cdc88628")
-                .unwrap();
+        // let state_root =
+        //     B256::from_str("0x6f184a0cf582192768fc6c8c697da0e9eb85b623c0cfea2b26034e29cdc88628")
+        //         .unwrap();
         // let account_proof = AccountProofWithBytecode::from_eip1186_proof(res);
         // account_proof.verify(state_root).unwrap();
     }
