@@ -1,9 +1,9 @@
 use alloy_primitives::B256;
 use reth_primitives::revm_primitives::AccountInfo;
-use reth_trie::AccountProof;
+use reth_trie::{AccountProof, StorageProof};
 use serde::{Deserialize, Serialize};
 
-use crate::{account::HdpAccount, rlp::get_account_info};
+use crate::{account::HdpAccount, rlp::get_account_info, storage::HdpStorage};
 
 /// The account proof with the bytecode.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -14,10 +14,12 @@ pub struct AccountProofWithBytecode {
 
 pub fn from_processed_account_to_account_proof(
     account: HdpAccount,
+    storage: Option<HdpStorage>,
     storage_root: B256,
 ) -> Vec<AccountProofWithBytecode> {
     let mut proofs = vec![];
     for proof in account.proofs {
+        let converted_storage_proof = into_storage_proof(storage.clone());
         let decoded_account =
             get_account_info(&mut proof.proof.last().unwrap().to_vec().as_slice()).unwrap();
         let reth_account = AccountInfo {
@@ -26,12 +28,13 @@ pub fn from_processed_account_to_account_proof(
             code_hash: decoded_account.code_hash,
             code: None,
         };
+
         let account_proof = AccountProof {
             address: account.address,
             info: Some(reth_account.into()),
             proof: proof.proof,
             storage_root,
-            storage_proofs: vec![],
+            storage_proofs: converted_storage_proof,
         };
         proofs.push(AccountProofWithBytecode {
             proof: account_proof,
@@ -46,6 +49,16 @@ impl AccountProofWithBytecode {
     pub fn verify(&self, state_root: B256) -> bool {
         self.proof.verify(state_root).is_ok()
     }
+}
+
+pub fn into_storage_proof(storage: Option<HdpStorage>) -> Vec<StorageProof> {
+    let mut vec_storage_proofs = vec![];
+    for proof in storage.clone().unwrap().proofs {
+        let mut storage_proof = StorageProof::new(storage.clone().unwrap().storage_key);
+        storage_proof.proof = proof.proof;
+        vec_storage_proofs.push(storage_proof);
+    }
+    vec_storage_proofs
 }
 
 #[cfg(test)]

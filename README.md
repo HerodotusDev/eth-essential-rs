@@ -1,8 +1,8 @@
 ### Building blocks
 
 - [x] Header verification - MMR proof
-- [ ] Account verification - MPT proof
-- [ ] Storage verification - MPT proof
+- [x] Account verification - MPT proof
+- [x] Storage verification - MPT proof
 - [ ] Tx / Receipt verification - MPT proof
 
 ## funfact - mmr

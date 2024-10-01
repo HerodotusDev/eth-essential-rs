@@ -15,6 +15,7 @@ use hdp_lib::{
     mmr_keccak::{verify_headers_with_mmr_peaks, Header, MmrMeta},
     mpt::from_processed_account_to_account_proof,
     rlp::get_state_root,
+    storage::HdpStorage,
 };
 
 pub fn main() {
@@ -22,7 +23,9 @@ pub fn main() {
     //
     // Behind the scenes, this compiles down to a custom system call which handles reading inputs
     // from the prover.
+
     let account = sp1_zkvm::io::read::<HdpAccount>();
+    let storage = sp1_zkvm::io::read::<HdpStorage>();
     let headers = sp1_zkvm::io::read::<Vec<Header>>();
     let mmr = sp1_zkvm::io::read::<MmrMeta>();
 
@@ -32,7 +35,8 @@ pub fn main() {
         let mut is_valid_acc = true;
         for header in headers {
             let state_root = get_state_root(&mut header.rlp.as_bytes()).unwrap();
-            let accounts = from_processed_account_to_account_proof(account.clone(), state_root);
+            let accounts =
+                from_processed_account_to_account_proof(account.clone(), None, state_root);
             for one_account in accounts {
                 is_valid_acc = one_account.verify(state_root);
             }
