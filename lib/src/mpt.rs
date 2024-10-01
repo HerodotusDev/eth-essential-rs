@@ -2,7 +2,6 @@ use alloy_primitives::B256;
 use reth_primitives::revm_primitives::AccountInfo;
 use reth_trie::AccountProof;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
 use crate::{account::HdpAccount, rlp::get_account_info};
 
@@ -44,10 +43,8 @@ pub fn from_processed_account_to_account_proof(
 
 impl AccountProofWithBytecode {
     /// Verifies the account proof against the provided state root.
-    pub fn verify(&self, state_root: B256) -> Result<(), Box<dyn Error>> {
-        self.proof.verify(state_root).unwrap();
-
-        Ok(())
+    pub fn verify(&self, state_root: B256) -> bool {
+        self.proof.verify(state_root).is_ok()
     }
 }
 
@@ -60,7 +57,7 @@ mod tests {
     #[test]
     fn test_eip_1186_account_without_storage_proof() {
         // TEST CASE: account proof of ETHEREUM SEPOLIA 6127485
-        let res = EIP1186AccountProofResponse {
+        let _ = EIP1186AccountProofResponse {
             address: address!("7f2c6f930306d3aa736b3a6c6a98f512f74036d4"),
             balance: U256::from_str_radix("21422802379747620244", 10).unwrap(),
             code_hash: b256!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),

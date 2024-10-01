@@ -29,14 +29,20 @@ pub fn main() {
     // verify all the given headers are valid against the given mmr
     let is_valid = verify_headers_with_mmr_peaks(mmr, &headers).unwrap();
     if is_valid {
+        let mut is_valid_acc = true;
         for header in headers {
             let state_root = get_state_root(&mut header.rlp.as_bytes()).unwrap();
             let accounts = from_processed_account_to_account_proof(account.clone(), state_root);
             for one_account in accounts {
-                one_account.verify(state_root).unwrap();
+                is_valid_acc = one_account.verify(state_root);
             }
         }
-
-        sp1_zkvm::io::commit_slice(&[1]);
+        if is_valid_acc {
+            sp1_zkvm::io::commit_slice(&[1]);
+        } else {
+            sp1_zkvm::io::commit_slice(&[0]);
+        }
+    } else {
+        sp1_zkvm::io::commit_slice(&[0]);
     }
 }

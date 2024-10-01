@@ -57,9 +57,6 @@ impl MmrMeta {
 
             // Update the leaf index
             leaf_index /= 2; // Move to the parent index for the next iteration
-
-            println!("hash: {:?}", hash.to_string());
-            println!("leaf_index_mut: {:?}", leaf_index);
         }
 
         // Get the peak information
