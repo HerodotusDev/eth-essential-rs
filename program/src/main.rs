@@ -35,8 +35,11 @@ pub fn main() {
         let mut is_valid_acc = true;
         for header in headers {
             let state_root = get_state_root(&mut header.rlp.as_bytes()).unwrap();
-            let accounts =
-                from_processed_account_to_account_proof(account.clone(), None, state_root);
+            let accounts = from_processed_account_to_account_proof(
+                account.clone(),
+                Some(storage.clone()),
+                state_root,
+            );
             for one_account in accounts {
                 is_valid_acc = one_account.verify(state_root);
             }
