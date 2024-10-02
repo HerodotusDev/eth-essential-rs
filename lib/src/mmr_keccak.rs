@@ -15,12 +15,6 @@ use serde::{Deserialize, Serialize};
 use crate::hash::{Hash, Keccak256};
 
 #[derive(Serialize, Deserialize)]
-pub struct MmrJson {
-    pub meta: MmrMeta,
-    pub headers: Vec<Header>,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct MmrMeta {
     pub root: B256,
     pub size: u128,
@@ -63,9 +57,6 @@ impl MmrMeta {
 
             // Update the leaf index
             leaf_index /= 2; // Move to the parent index for the next iteration
-
-            println!("hash: {:?}", hash.to_string());
-            println!("leaf_index_mut: {:?}", leaf_index);
         }
 
         // Get the peak information
@@ -198,9 +189,20 @@ pub struct HeaderInclusionProof {
     pub mmr_path: Vec<B256>,
 }
 
-pub fn verify_headers_with_mmr_peaks(mmr: MmrMeta, header: Header) -> Result<bool, Box<dyn Error>> {
-    let element_value = Keccak256::hash_key(header.rlp.as_bytes().to_vec());
-    mmr.verify_proof(header.proof.leaf_idx, element_value, header.proof.mmr_path)
+pub fn verify_headers_with_mmr_peaks(
+    mmr: MmrMeta,
+    headers: &[Header],
+) -> Result<bool, Box<dyn Error>> {
+    let mut is_verified = true;
+    for header in headers {
+        let element_value = Keccak256::hash_key(header.rlp.as_bytes().to_vec());
+        is_verified = mmr.verify_proof(
+            header.proof.leaf_idx,
+            element_value,
+            header.proof.mmr_path.clone(),
+        )?;
+    }
+    Ok(is_verified)
 }
 
 pub fn validate_mmr(mmr: MmrMeta) {
