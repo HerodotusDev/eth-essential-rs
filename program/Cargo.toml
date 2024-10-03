@@ -7,7 +7,7 @@ edition = "2021"
 sp1-derive = "2.0.0"
 alloy-sol-types = { workspace = true }
 sp1-zkvm = "2.0.0"
-hdp-lib = { path = "../lib" }
+hdp-lib = { workspace = true }
 
 # TODO: why existance of this doesn't makes any difference on perf
 [patch.crates-io]

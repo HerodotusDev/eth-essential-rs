@@ -19,7 +19,8 @@ pub fn from_processed_account_to_account_proof(
     state_root: B256,
 ) -> bool {
     for proof in account.proofs {
-        let converted_storage_proof = into_storage_proof(storage.clone());
+        // TODO: verify storage
+        let _converted_storage_proof = into_storage_proof(storage.clone());
         let key = Bytes::from(hex::decode(account.account_key.clone()).unwrap());
         let nibbles = Nibbles::unpack(key);
         // TODO: need to get rlp encoded account

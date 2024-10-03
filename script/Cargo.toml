@@ -20,7 +20,7 @@ clap = { version = "4.0", features = ["derive", "env"] }
 tracing = "0.1.40"
 hex = "0.4.3"
 alloy-sol-types = { workspace = true }
-hdp-lib = { path = "../lib" }
+hdp-lib = { workspace = true }
 starknet-types-core = { version = "0.1.5", features = ["hash"] }
 
 [build-dependencies]

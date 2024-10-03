@@ -5,20 +5,15 @@ edition = "2021"
 
 [dependencies]
 alloy-sol-types = { workspace = true }
-thiserror = "1.0"
-starknet-types-core = { version = "0.1.5", features = ["hash"] }
-serde = { version = "1.0", features = ["derive"] }
-reth-trie = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false }
-alloy-rpc-types-eth = { version = "0.3", default-features = false, features = [
-    "serde",
-
-] }
-alloy-trie = { version = "0.6.0" }
-alloy-rlp = { version = "0.3.5", features = ["derive"] }
-alloy-primitives = { version = "0.8.0", features = ["rlp"] }
-reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
-    "std",
-] }
+thiserror = { workspace = true }
+starknet-types-core = { workspace = true }
+serde = { workspace = true }
+reth-trie = { workspace = true }
+alloy-rpc-types-eth = { workspace = true }
+alloy-trie = { workspace = true }
+alloy-rlp = { workspace = true }
+alloy-primitives = { workspace = true }
+reth-primitives = { workspace = true }
 
 # TODO: why existance of this doesn't makes any difference on perf
 [patch.crates-io]

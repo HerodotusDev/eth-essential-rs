@@ -3,5 +3,19 @@ members = ["lib", "program", "script"]
 resolver = "2"
 
 [workspace.dependencies]
+hdp-lib = { path = "./lib" }
 alloy-sol-types = "0.4.0"
 alloy-primitives = { version = "0.8" }
+thiserror = "1.0"
+starknet-types-core = { version = "0.1.5", features = ["hash"] }
+serde = { version = "1.0", features = ["derive"] }
+reth-trie = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false }
+alloy-rpc-types-eth = { version = "0.3", default-features = false, features = [
+    "serde",
+
+] }
+alloy-trie = { version = "0.6.0" }
+alloy-rlp = { version = "0.3.5", features = ["derive"] }
+reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
+    "std",
+] }

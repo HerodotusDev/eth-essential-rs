@@ -2,7 +2,7 @@
 
 - [x] Header verification - MMR proof
 - [x] Account verification - MPT proof
-- [x] Storage verification - MPT proof
+- [ ] Storage verification - MPT proof
 - [ ] Tx / Receipt verification - MPT proof
 
 ## funfact
