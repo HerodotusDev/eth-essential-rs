@@ -40,15 +40,11 @@ pub fn main() {
             let state_root = get_state_root(header.rlp).unwrap();
             println!("cycle-tracker-end: rlp");
             println!("cycle-tracker-start: account mpt");
-            let accounts = from_processed_account_to_account_proof(
+            is_valid_acc = from_processed_account_to_account_proof(
                 account.clone(),
                 Some(storage.clone()),
                 state_root,
             );
-            println!("cycle-tracker-end: account mpt");
-            for one_account in accounts {
-                is_valid_acc = one_account.verify(state_root);
-            }
             println!("cycle-tracker-end: account mpt");
         }
         if is_valid_acc {

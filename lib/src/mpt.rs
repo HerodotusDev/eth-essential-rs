@@ -1,9 +1,10 @@
 use alloy_primitives::B256;
-use reth_primitives::revm_primitives::AccountInfo;
-use reth_trie::{AccountProof, StorageProof};
+use alloy_trie::proof::verify_proof;
+use reth_primitives::{hex, Bytes};
+use reth_trie::{AccountProof, Nibbles, StorageProof};
 use serde::{Deserialize, Serialize};
 
-use crate::{account::HdpAccount, rlp::get_account_info, storage::HdpStorage};
+use crate::{account::HdpAccount, storage::HdpStorage};
 
 /// The account proof with the bytecode.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -15,32 +16,26 @@ pub struct AccountProofWithBytecode {
 pub fn from_processed_account_to_account_proof(
     account: HdpAccount,
     storage: Option<HdpStorage>,
-    storage_root: B256,
-) -> Vec<AccountProofWithBytecode> {
-    let mut proofs = vec![];
+    state_root: B256,
+) -> bool {
     for proof in account.proofs {
         let converted_storage_proof = into_storage_proof(storage.clone());
-        let decoded_account = get_account_info(proof.proof.last().unwrap().to_string()).unwrap();
-        let reth_account = AccountInfo {
-            balance: decoded_account.balance,
-            nonce: decoded_account.nonce,
-            code_hash: decoded_account.code_hash,
-            code: None,
-        };
-
-        let account_proof = AccountProof {
-            address: account.address,
-            info: Some(reth_account.into()),
-            proof: proof.proof,
-            storage_root,
-            storage_proofs: converted_storage_proof,
-        };
-        proofs.push(AccountProofWithBytecode {
-            proof: account_proof,
-        });
+        let key = Bytes::from(hex::decode(account.account_key.clone()).unwrap());
+        let nibbles = Nibbles::unpack(key);
+        // TODO: need to get rlp encoded account
+        let expected = Bytes::from(hex!(
+            "f84a018612309ce54000a069bbf0407f9d5438512c6218768a9581f377fa5dc119ea1409b917b75c242e1ca0eab3448e22d0f75e09ed849b2e87ac6739db4104db4eaeeffcc66cfa819755fd"
+        ));
+        verify_proof(
+            state_root,
+            nibbles,
+            Some(expected.to_vec()),
+            proof.proof.iter(),
+        )
+        .unwrap();
     }
 
-    proofs
+    true
 }
 
 impl AccountProofWithBytecode {
@@ -64,7 +59,9 @@ pub fn into_storage_proof(storage: Option<HdpStorage>) -> Vec<StorageProof> {
 mod tests {
     use alloy_primitives::U256;
     use alloy_rpc_types_eth::EIP1186AccountProofResponse;
-    use reth_primitives::{address, b256, bytes};
+    use alloy_trie::proof::verify_proof;
+    use reth_primitives::{address, b256, bytes, hex, Bytes, B256};
+    use reth_trie::Nibbles;
 
     #[test]
     fn test_eip_1186_account_without_storage_proof() {
@@ -93,5 +90,52 @@ mod tests {
         //         .unwrap();
         // let account_proof = AccountProofWithBytecode::from_eip1186_proof(res);
         // account_proof.verify(state_root).unwrap();
+    }
+
+    #[test]
+    fn test_mpt() {
+        let root_hash = B256::from_slice(&hex!(
+            "fe5710ac36eae31f8fd741ec4646295805efde7d5af87f75b6c9f3b478264c03"
+        ));
+        let encode1 = Bytes::from(hex!(
+            "f90211a0dcbd475dd9c177f568ddcdc319c6397b522f9f0477f02c6f5d40f9a676d72817a00bd4f5aa23dff4b6bc82a30b7f06e299a4190e5dc145de56ebccf7b392187a09a0d61af80cd5cb39dc63864ca43eece1e0c75f3921a897e76d9749aebc53c3df8aa0864c73b1fcb6c20c7a3dc987b995a197d3970a60776b69fe86d2e8e47ea94c34a07a968065710e1a0487b9ba027fe8b4e75c48f808fa4df0e8b2e790d68af1c7a1a0415df25f69223af7620a8ae632dd96f0a266de38c7669450ccc1266e6d9f28e1a0169b43699e8685d580bf8544569306755efd3faf8ee9c573d8fc3b765716dff2a04fbb7e84242d6ebc993d1722bd4da3c8f7933c2197dc7e004029d5ecac5472dea00598724879d324152dba334b881e3ec51ab434b0f5160e501f27e41eb081a9faa0b80e76258879b1cc1553ca8fecaa7156a4bbeeae3a46e48af60f16c78b08dcc4a0cc4d6c7a08755dc1a1deeed0705ab80e722b5c26f49484052021c9afcc9f0c8da0e16df8444c1c2b049779688485f147f62074c3f74b3af089c4eda8dd71e45b77a0f3963f892598d2d4c58dc1b26ecc22670f9d6456e36682e63c10f28a6d17c19ea08e0108cf433e3125ac5e6a175171a410f4f16f3fec51752a27b6f0d32d00027fa06142d171f73708046ddc01d7a1303d875ade53e4b354a314ef031bfb2d35374ca093fb99dbe11b40160a862e9c654f6374f6e5c9e24685488a262df35175c83a8780"
+        ));
+        let encode2 = Bytes::from(hex!(
+            "f90211a085874b8d020224e2ef3bd88570ab5c06d45decde1754f26c8d4d8008e0ccd113a003db289fe33b3b8d8c26b21562e42c050d680960ec99ef5bb315c1d636fa46eca013df832fe4094fa9df8f7a13beb8babb9874ec04c11cf0d170ad2b55869314e4a027760fd8d42862a7c2709031af97c6b34b7ad73af02bf7e0e8573da746e5d672a0e5e42a2564de948a79a3584e601c523f2a8d2f63fab6285d58a76ada5b7a94caa0b280c353d94aa1b0a94da9a2c27766cfe15dbf0299aaa0647e24dabd80e42f81a0ed48ca0484a3345f1e84d2f8a7a0d1e8549ff231ff6bffd9a46d6c0d0ab3683ca0635a725706435ff7c28ac67e918a077147acc3a8272989e2f565c00cfe49900aa09813dfd235a1906b75234a4ea7c0a2537bdc6297ece7628f10b92df4f38fccf0a09a1fec84542b2b2ea02e9f664a30b970043ff2ce93db423bc8e671db2acc5942a0e6459861abcab3d672bacfbcd0038cbaf48c2db6ff6168ebc5f32a024ae9414ea0e5da62361bea1124afcfc1908b58ba4171a2ecb9041500df3564eadfae0865c0a01d0ec6d9747a31adac893f02d7dd9e4d4de50423a758a5d0e9005d3c5a4f4e5aa04fbeca911091ce452276d951fa5d75d202c3c39bd8cad76100d40cc192382e4aa0ed06eb4338923d982930fd9ef71f51124e281f3db032094bee2e171ea5c95c69a02574cb976bb8877c1d22451852f470c0561a30ccb0a9f0b4de060d943f25a77a80"
+        ));
+        let encode3 = Bytes::from(hex!(
+            "f90211a0084de79b5e883c52b17995d2e0acc42672f5c655d6af15eefa49383cfeff7f4fa0445910a988ca4f62953b07a03032d4018c686160c48bbcd8b4a90dd69fbde0cda05577225cb64372d7e288773beab518921e402946977279f6ea43f0cc01b134cba0280baa1097cec29878b9f6e3ddd7b6e941d66aa1ae68188e377530f2816a87c2a0c4ff1b28e2f879ec95e217d623e1e7e9a862540306b1702e1b90df84e72c8af9a0c82365017d560783befa31d24472e2239ee9f07c2c96e531e3b71d29834dd87ba08c6c2ce740933f17d0e50730c4a90ce1c44127c0c95fa2668a8177a4cb636130a03c39ea857e88d2038809d04bdd720599f88d713a0749e6fc4aae0c868e4db3a0a028249731b03a575f0676c649411a88cf93684e2990fa3ba3f922df5937fd0239a0d730b73f1924349103f07d7675f031799894108625ad258ab906359f1b45f071a0c9272cb00358e0272f80667ae90348ec7a655df30692e5410ff3cdfdd0c74f04a015b2a43f4ec90d5870821683cf4a2cdc935e6061cc6465ae459682715f9fdea9a09bd6271ddf98dbb976d85e8fdf0c8fef73377a4cb0e312f7a6e17227d0614040a0c772ab406ca4b22d2d25d9fc2e8969b02d1699cafdcacf8a1a44ddb0505019e8a061683a17e7cb9118d7d9083260df11b5d2b4a05986c5b0423a4940bf58c6c2bfa0368010c59a191f3867c91195be126b12cd3a264ae66b3ff235b827c42bc5a37f80"
+        ));
+        let encode4 = Bytes::from(hex!(
+            "f90211a030d16cf8968685e1fe09ecb3512a4693214b06516219522769f5a3bd61b37be0a023ef708630714cf8f1e3f3976be52a5466e4a98499a53ff82601b58ec5757063a0ac9c8d3c1e7a5161fef97bea92515a17ac26e44fd2378921482c106756a800ada0db27b9f7fc9979b2668c32c5c0248198417a4149310f872cd056b4872e59318ca042457bb6d51d099607184742c05e63595f2560f1e19074e2d85057c30a5eef90a09cce0b54c3a682f7fb3f8cff6c8f3ec26db4dc374ef5fd2e264dd1a65e18d75da009cf5dceddf7fdb5e1b9bbd2f98403e7383039d7e3bc1647a92e8d9da54670aca0b876e4ec048c5a62c713da59da80a5b0c5fcb1c2fb42fc27a50ba29f2c44d0bca0660498eab6d6f8af7f5c787083dbcff9c11a680ad7b95c5911ba3eac220fb85da0ce4da32c4c975b5a8c9525457de86141de21c5a10c87f50ac8e7f789f0f7610ba0c6c553a41dc8e0efb4b2861c5629badf4024e783f3e86c64027dacd8a6b81939a0754ff70bc9d39995034b21918c09e82622e1d5454e23f1d536c9da249e251c49a0f70fdd04323bbe0c3b54e8d1bf1cd3486f07806592e3fb709e0d09b3b6215a60a07a15f0c9006c2c39c0104e3bbc6638b46ec97cb247273b305a6cb4e1571406f4a0f245157f960b827c6e16e1cb0a8dc0ec52c308317d5745bbd526ab1132eb7675a09a6fb7cc3bcabe9d69b07b9d642e14fa28e5b0880c0a93687bdebe1e9adbc65a80"
+        ));
+        let encode5 = Bytes::from(hex!(
+            "f90211a0bab0d0089f9b71981ee144eab1eb87260863d7c0e8860fc50baa123cd57e1076a0b32055007377e4ebece59e67dd1bdef2fab8090fe602e426a17b989b24cee030a097213247b21d1775d0e0a9fceb5cd8bf089b565e0b12aeb87c4cf5ea3b9ef647a0fb10491ba8d4b7f3ab3aef2d239e47d05f905989ba886914de453260cca87a25a0fed0c810a8f3bb9060ceaa1e0e3b60bd2cac8aa3925f257821ffd1a6c045d019a02d579a264ff31036f717769ed3f6ee42710abba3ef9c6208fff18e906f941baaa086f017b4aa106b297a4c2ff4d7d2df9b59ab2ec7542b954df44948b3a85e710aa06d8d9c4bea4ba3b6b10dddc3394b4862067b96fc6dfd17828813a5d7472ee55da03b3bcad80eebdb117e2959dedb15f20cbae17bd7c8a2efbd7faba34bc1e0d142a076f365c75ad50cdf2a3576be0650168face12d535126685fece5d2940587d82ba028d9e77aa5602c1751028395ebed9c7f23febd2336acbe30c18b7d30b9449746a0dc0ab69dba2c48c9e72774ecab8bc336cf24ae1114545620ebd497d873d29ab9a0a34fa0b0b9ed3180b42db497dd324bfbd11f76e019a5404b82f94262572c199da01c8267bd384ec055d22e28973cb5e1a6602ad4eb1c6bb2e6012cd3239710fc16a04dbfb0a097f406c15ab7947441fb164796a12932b4d88676fd1b2cd7b1d95bc2a0fa35a1f36a579056bed3cf33830d34938d92199a27b487c3cd6c7206234a0f4480"
+        ));
+        let encode6 = Bytes::from(hex!(
+            "f901d1a06d6223af2401971b5d3667a3a58a872ea759e76582fb375e4f2de0e420df275ea0f158252d20b99f3aa36e5b97c87644eaabc50f582e769ea41cf18f7ae3602227a0a4faeacc33284fdd0eafce32e0776543e3ac349de68dfcb7abcc40b0ae82df5fa0245f6fda91c1d0dd6036c8799a9338cbf85cbbca8a3a45f35a27bb076d10cb65a080d306d21c5efccfa655b98f48b2811000fe6f60a9aebd8fdcbde7589c748e96a077499f3ba879737a73d6628cbe5d5b8ad598430031ca879cdcb3a2509d3f7d5fa0c91ebaef1a0e560845ba673efd813a313e8b9e870524adc4aa4cb6ce4eb47358a078db9a4d7a85f223a7e7b0b4e22c8f0b0c1e976d6197f0ab565b16d7d2143852a02aaaa42933c19eec648bef646eda705a1e84cffbe4ecd62a31862aee16e05241a06e516cdf1f81d33ffae52ca5bf785219501710b5302738b2c405127406ef3c94a0c8ed1799c413fefe7f902fd41911193db6378456ac10eb218c8f7a137b7b50b4a0e412c32035edec4058b02f8137c18a403f5d0274e1ca1f0beff3257f61788af8a0be49c166207007fd651f379fdd6a16bea5854e57e6fcf0109551e5d7f28f883680a017f79411b196fbea4295e681196191c969174d02a467bfd6699ef4c3c6d4fb2a8080"
+        ));
+        let encode7 = Bytes::from(hex!(
+            "f8518080808080a01922ad14def89076bde0011d514a50cae7632d617136bb83c1b2fcbed3383c7380808080808080a0e81a4320e846af94db949f1a5298f425864e8eecbe8b72342b0aea33c0ea6e3c808080"
+        ));
+        let encode8 = Bytes::from(hex!(
+            "f86c9d3fc8476432660877b666f653759ea69189b60d2f4a7008e70555746ad1b84cf84a018612309ce54000a069bbf0407f9d5438512c6218768a9581f377fa5dc119ea1409b917b75c242e1ca0eab3448e22d0f75e09ed849b2e87ac6739db4104db4eaeeffcc66cfa819755fd"
+        ));
+
+        let proof = vec![
+            &encode1, &encode2, &encode3, &encode4, &encode5, &encode6, &encode7, &encode8,
+        ];
+
+        let key = Bytes::from(hex!(
+            "962f445fc8476432660877b666f653759ea69189b60d2f4a7008e70555746ad1"
+        ));
+
+        let nibbles = Nibbles::unpack(key);
+
+        let expected = Bytes::from(hex!(
+            "f84a018612309ce54000a069bbf0407f9d5438512c6218768a9581f377fa5dc119ea1409b917b75c242e1ca0eab3448e22d0f75e09ed849b2e87ac6739db4104db4eaeeffcc66cfa819755fd"
+        ));
+
+        verify_proof(root_hash, nibbles, Some(expected.to_vec()), proof.clone()).unwrap();
     }
 }

@@ -13,6 +13,7 @@ alloy-rpc-types-eth = { version = "0.3", default-features = false, features = [
     "serde",
 
 ] }
+alloy-trie = { version = "0.6.0" }
 alloy-rlp = { version = "0.3.5", features = ["derive"] }
 alloy-primitives = { version = "0.8.0", features = ["rlp"] }
 reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
