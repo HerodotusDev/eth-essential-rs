@@ -30,19 +30,26 @@ pub fn main() {
     let mmr = sp1_zkvm::io::read::<MmrMeta>();
 
     // verify all the given headers are valid against the given mmr
+    println!("cycle-tracker-start: mmr");
     let is_valid = verify_headers_with_mmr_peaks(mmr, &headers).unwrap();
+    println!("cycle-tracker-end: mmr");
     if is_valid {
         let mut is_valid_acc = true;
         for header in headers {
-            let state_root = get_state_root(&mut header.rlp.as_bytes()).unwrap();
+            println!("cycle-tracker-start: rlp");
+            let state_root = get_state_root(header.rlp).unwrap();
+            println!("cycle-tracker-end: rlp");
+            println!("cycle-tracker-start: account mpt");
             let accounts = from_processed_account_to_account_proof(
                 account.clone(),
                 Some(storage.clone()),
                 state_root,
             );
+            println!("cycle-tracker-end: account mpt");
             for one_account in accounts {
                 is_valid_acc = one_account.verify(state_root);
             }
+            println!("cycle-tracker-end: account mpt");
         }
         if is_valid_acc {
             sp1_zkvm::io::commit_slice(&[1]);

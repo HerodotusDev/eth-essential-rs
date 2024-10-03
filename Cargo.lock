@@ -2113,6 +2113,7 @@ version = "0.1.0"
 dependencies = [
  "alloy-sol-types 0.4.2",
  "hdp-lib",
+ "sp1-derive",
  "sp1-zkvm",
 ]
 

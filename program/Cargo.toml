@@ -4,6 +4,12 @@ name = "fibonacci-program"
 edition = "2021"
 
 [dependencies]
+sp1-derive = "2.0.0"
 alloy-sol-types = { workspace = true }
 sp1-zkvm = "2.0.0"
 hdp-lib = { path = "../lib" }
+
+# TODO: why existance of this doesn't makes any difference on perf
+[patch.crates-io]
+# This patch uses sha3 instead of tiny-keccak. Reduces cycle count for Keccak by 50%.
+alloy-primitives = { git = "https://github.com/sp1-patches/alloy-core", branch = "patch-v0.8.3" }

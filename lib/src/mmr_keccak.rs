@@ -9,7 +9,9 @@ pub enum MmrError {
     InvalidElementIndex,
 }
 
+use alloy_primitives::hex;
 use alloy_primitives::{B256, U256};
+use reth_primitives::keccak256;
 use serde::{Deserialize, Serialize};
 
 use crate::hash::{Hash, Keccak256};
@@ -62,7 +64,6 @@ impl MmrMeta {
         // Get the peak information
         let (peak_index, _) = get_peak_info(self.size as usize, element_index as usize);
         let peak_hashes = self.peaks.clone();
-
         // Verify the final hash matches the peak hash
         Ok(peak_hashes[peak_index] == hash)
     }
@@ -70,10 +71,7 @@ impl MmrMeta {
     /// P = Poseidon(N | Poseidon(N | Node(p1) | Node(p2) | Node(p3))), N = size, p = peaks
     fn bag_peaks(&self) -> Result<B256, Box<dyn Error>> {
         let final_top_peak = self.final_top_peak()?;
-        println!("final_top_peak: {:?}", final_top_peak.to_string());
         let size: B256 = U256::from(self.size).into();
-        println!("size: {:?}", size.to_string());
-
         Ok(Keccak256::hash(size, final_top_peak))
     }
 
@@ -195,7 +193,8 @@ pub fn verify_headers_with_mmr_peaks(
 ) -> Result<bool, Box<dyn Error>> {
     let mut is_verified = true;
     for header in headers {
-        let element_value = Keccak256::hash_key(header.rlp.as_bytes().to_vec());
+        let rlp_bytes = hex::decode(&header.rlp).unwrap();
+        let element_value = keccak256(rlp_bytes);
         is_verified = mmr.verify_proof(
             header.proof.leaf_idx,
             element_value,
@@ -238,6 +237,7 @@ fn validate_mmr_size(size: u128) -> bool {
 #[cfg(test)]
 mod tests {
     use alloy_primitives::hex::FromHex;
+    use reth_primitives::b256;
 
     use super::*;
 
@@ -295,209 +295,59 @@ mod tests {
             .unwrap());
     }
 
-    // #[test]
-    // fn test_verify_headers_with_mmr_peaks() {
-    //     let test_mmr_meta: MmrMeta = MmrMeta {
-    //         root: Felt::from_hex_unchecked(
-    //             "0x492627ffa5084ec078f4d461408dfaa50b504a022c5471452d598da0040c066",
-    //         ),
-    //         size: 13024091,
-    //         peaks: vec![
-    //             Felt::from_hex_unchecked(
-    //                 "0x262c4c9b1cb2a036924aecf563dc9952e5f8b41004310adde86f22abb793eb1",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x10b39aed56c8f244a1df559c944ada6f12b7238f8c06a2c243ba4276b8059b0",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x46f45f218ea3aec481f350cda528a6f9f926a2dd53dae302e2cb610e5f152c7",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x1d52a06e6d02569893a1d842c00bb67c044be541c614e88613d7fc7187e18c1",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x770ebf618a589c17e3dc05bda7121acbedc0b48cd25f2943dc43f395f8bf0db",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x7263e878f7deafdc49b47da57f8594d477e572d3ac2bec27bb73860a35b1899",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x7b9e99f008949f9ee33d2965708ac6773a57965514df6383d55de104a39ab8c",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x28f6ccdcd38f6be6c437d100fcd62604c3293e31342a777dc37c712869ab08c",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x13d87197fe5d6f646a57dc918dcbef210737020dca9b89537fd8718ac69da3e",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x7eef4b790b56858c0232b494034d4c8699112d88f358209f71f02d5e93a7084",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x25cd2f0b579c902c41ac26df96ed5b21e16a3127dce2b471973dc86eb4c099f",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x5fdedfd0123b7461d5b3162fe82f7f3172c42fda6209415367870086f7c7918",
-    //             ),
-    //             Felt::from_hex_unchecked(
-    //                 "0x7c0a415d5a6c4c90fd2dde1b340c3be305a72aa3b758dd26b8d7b4a78b53681",
-    //             ),
-    //         ],
-    //     };
+    #[test]
+    fn test_verify_headers_with_mmr_peaks() {
+        let test_mmr_meta: MmrMeta = MmrMeta {
+            root: b256!("62d451ed3f131fa253957db4501b0f4b6eb3f29c706663be3f75a35b7b372a38"),
+            size: 13024091,
+            peaks: vec![
+                b256!("ea94b197307128f1e18f9f3186a6452bd201b86f484f80cc3b2cbfb0b646c577"),
+                b256!("ff430ddf60e969c483750fd56caee265cab4037f437d4a0a45eee230088e9092"),
+                b256!("8735438529236334bc5b13c0bb8ba6ad62f1b0e7f821a739fcdbd7903d618d6a"),
+                b256!("c86310b6895e77987c3e0afa79b0e2fac4538405a5e3ab276c915cdb4e74b4b9"),
+                b256!("9dd90ca28eac4c7e903923164d9ca4e4227fb0c400ec1f9da20fa0ef33f438be"),
+                b256!("73d7ed3f6cf4713925838f61e8debebbee3d33652d684488387d05712837af1e"),
+                b256!("8f570e28c7fa0d9aef96bc80e1985696094fa132b47417b67429b37fb3413469"),
+                b256!("5e5ad2c6f4e13950a0ddd7e0c803aa24cd968c59d104f6ac5a46631c63896273"),
+                b256!("9e45d7d4fa8c5711c2df9636f3493ab31e1a12e463a0eec4798aa163d4d9a2a2"),
+                b256!("481b6377529be8836be09c47917289c5218b710e2d2f186c3b96f7d404a02312"),
+                b256!("f864d07f7cf26b072aa30e1223cf16f338d499fe83935836ff565c3cf9e42530"),
+                b256!("6fdbe7ef87553b453ef0c66322a33575f1e92b00d2abca122f9d9caeddca03b7"),
+                b256!("45da6302e5933720e03c6f851000ac3605ca863c54839c265eadc252bf7c4764"),
+            ],
+        };
 
-    //     let test_header = Header {
-    //         rlp: vec![
-    //             Felt::from_hex_unchecked("0x167e6bf7a06502f9"),
-    //             Felt::from_hex_unchecked("0xdca4f95cfb1ccd40"),
-    //             Felt::from_hex_unchecked("0x5a13c40acf7e78d2"),
-    //             Felt::from_hex_unchecked("0xacd3fd41f7a63a9f"),
-    //             Felt::from_hex_unchecked("0x4dcc1da0cf7a78fc"),
-    //             Felt::from_hex_unchecked("0xb585ab7a5dc7dee8"),
-    //             Felt::from_hex_unchecked("0x4512d31ad4ccb667"),
-    //             Felt::from_hex_unchecked("0x42a1f013748a941b"),
-    //             Felt::from_hex_unchecked("0x9ff2944793d440fd"),
-    //             Felt::from_hex_unchecked("0xa8fba1c9a6ae6af9"),
-    //             Felt::from_hex_unchecked("0xd469c0f33747f751"),
-    //             Felt::from_hex_unchecked("0xb1476d73eca0a9f1"),
-    //             Felt::from_hex_unchecked("0x874d5147a3a0ecc4"),
-    //             Felt::from_hex_unchecked("0x27d9569c6ab671c0"),
-    //             Felt::from_hex_unchecked("0x68e67dfce96bee20"),
-    //             Felt::from_hex_unchecked("0x5b109054a0f5f9e7"),
-    //             Felt::from_hex_unchecked("0xabce3cd2ad9d178e"),
-    //             Felt::from_hex_unchecked("0x10e5ed6dee95a472"),
-    //             Felt::from_hex_unchecked("0xfbb391640a35f4e8"),
-    //             Felt::from_hex_unchecked("0x7a1947a042d82f76"),
-    //             Felt::from_hex_unchecked("0x6314311ffdf5cf8c"),
-    //             Felt::from_hex_unchecked("0x9463a963ebe94e44"),
-    //             Felt::from_hex_unchecked("0xc7f760050e6a5057"),
-    //             Felt::from_hex_unchecked("0x1b9b02c41672c"),
-    //             Felt::from_hex_unchecked("0x4906c46f88361c"),
-    //             Felt::from_hex_unchecked("0x6c911371fa12b805"),
-    //             Felt::from_hex_unchecked("0x4c1c03320051c7a2"),
-    //             Felt::from_hex_unchecked("0x980481c194c40809"),
-    //             Felt::from_hex_unchecked("0x7c800a28414069c0"),
-    //             Felt::from_hex_unchecked("0xe298b78301017240"),
-    //             Felt::from_hex_unchecked("0x7573200b25021338"),
-    //             Felt::from_hex_unchecked("0x2213d6020368106"),
-    //             Felt::from_hex_unchecked("0x8beb9e585402601e"),
-    //             Felt::from_hex_unchecked("0xc34c08813a122656"),
-    //             Felt::from_hex_unchecked("0xe04450e0418116"),
-    //             Felt::from_hex_unchecked("0x27ca8e8d35900660"),
-    //             Felt::from_hex_unchecked("0x49220bab610260d"),
-    //             Felt::from_hex_unchecked("0x804b129191418eb8"),
-    //             Felt::from_hex_unchecked("0x5a647b00c0a40be8"),
-    //             Felt::from_hex_unchecked("0xe128901306e0201"),
-    //             Felt::from_hex_unchecked("0x40c72b023c044626"),
-    //             Felt::from_hex_unchecked("0xa0e1e228ab300827"),
-    //             Felt::from_hex_unchecked("0x420f21290342200c"),
-    //             Felt::from_hex_unchecked("0x8a060605538001e3"),
-    //             Felt::from_hex_unchecked("0x94c211f02a7ada02"),
-    //             Felt::from_hex_unchecked("0x8514e295a15d542"),
-    //             Felt::from_hex_unchecked("0x288345a43586720a"),
-    //             Felt::from_hex_unchecked("0xf80029022246a480"),
-    //             Felt::from_hex_unchecked("0xa94cb33462985683"),
-    //             Felt::from_hex_unchecked("0x4052129f03d73b01"),
-    //             Felt::from_hex_unchecked("0x136a4280411314e8"),
-    //             Felt::from_hex_unchecked("0x246165a86250b186"),
-    //             Felt::from_hex_unchecked("0x902b4201410416d2"),
-    //             Felt::from_hex_unchecked("0x742bb43302a4638a"),
-    //             Felt::from_hex_unchecked("0x6322be6a48524029"),
-    //             Felt::from_hex_unchecked("0x8566c6808b04068"),
-    //             Felt::from_hex_unchecked("0xc90184ab66598380"),
-    //             Felt::from_hex_unchecked("0x66841ce6c18380c3"),
-    //             Felt::from_hex_unchecked("0xd0183d899bcf93a"),
-    //             Felt::from_hex_unchecked("0x678868746567840b"),
-    //             Felt::from_hex_unchecked("0x85362e31322e316f"),
-    //             Felt::from_hex_unchecked("0xd51ca078756e696c"),
-    //             Felt::from_hex_unchecked("0x83074fe811b1197c"),
-    //             Felt::from_hex_unchecked("0x1e66107c617bfe2f"),
-    //             Felt::from_hex_unchecked("0xa187759811e589a1"),
-    //             Felt::from_hex_unchecked("0x887c6cadc69f7f"),
-    //             Felt::from_hex_unchecked("0x8500000000000000"),
-    //             Felt::from_hex_unchecked("0xedba0783f9bee02"),
-    //             Felt::from_hex_unchecked("0x95a9360b3e8975ca"),
-    //             Felt::from_hex_unchecked("0xc9d730d907230f1c"),
-    //             Felt::from_hex_unchecked("0xe2a3470255fe1187"),
-    //             Felt::from_hex_unchecked("0x883a6a29d4b69e7"),
-    //             Felt::from_hex_unchecked("0xa000009204840000"),
-    //             Felt::from_hex_unchecked("0xb2a26a2215758e0"),
-    //             Felt::from_hex_unchecked("0x6558068195ed9b2d"),
-    //             Felt::from_hex_unchecked("0x2b4b100c94d228cf"),
-    //             Felt::from_hex_unchecked("0x81fd704a5ab0c188"),
-    //         ],
-    //         proof: HeaderInclusionProof {
-    //             leaf_idx: 175968,
-    //             mmr_path: vec![
-    //                 Felt::from_hex_unchecked(
-    //                     "0x3e7f1315cad8591f8c695da7be6422314eb901b61d8987d3a4e8ea0d6d55986",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x727965b30883a87bf412ad16fc1cdf3e0f5ca04cfba6e12a183c9e00b9a42f4",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x2bb4be090166054388850e72daf0981ea183a58caf1fe168df34e3dbe8ee43f",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x1b4d43d2a01745806ed7164aa59bae7f658bce691245618f0c376d2bdf4b8bd",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x361ccc6bfc25ebc64fdfdd407970da357373985578cceb677f0714cdf7bdf87",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x2757794640969772a98ffabb417a53fb2df19791f98a61037064dad0d994ee8",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x196baba4ecbf0dc319a187e8b045966d3cd320663856a2ccd6dceee31a29308",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x75a6c78c085b058e8e9dbbc08707225adebd4f2b3acb67703b7feb85ddceae4",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x1e565ec1da0650a15d4f46f2c0eb3d4549d191f330a6f9bebed76e40e5b4ba3",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x00bc88770e38112723046e2718585dad9b69b271dad851212379e6acc969de6",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x387cf7cedc350945487fd4ee111706c44bd5a815b57f5974ce440e6dde43e24",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x298f99d09fc847f82a9512a7b39ccf73746e078314dbe734b8f269e1286637c",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x725f669ddd64e3864cf53f3e8d16b888bc2835a2bf062fa032ab0b6ba15028a",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x49ab2b3574a65dd6648d976b5fe990131d6e7b4b7d41a2be5366710dd17b94f",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x33716f3f24c1835811c678186589eb5551639a40d94e47147f57c5753c7f12d",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x715c7749b605209670cc17e41fe1d82e97ad445bda2a3eeca74eed3b17fd886",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x48ce8656d39a85f29a6493eb3881a62e965e36165537bc70b225dd5f982ca23",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x11ecc517bc5be2a48922a0136824d6983c3e1a95c1cd32cac135ed69b54d364",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x5eab4c28e04e28d5056042dd8a8cb9810cb44711e7ee6da394d2e4d2b84a680",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x59bbae3d1cfd74546dfe68c264341cee9f95c3b3b61eeacead3bd4cb3ae232a",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x546455f57f4ee848d3952148e3b94700f387ee2c36730bfeda09379ce8fa509",
-    //                 ),
-    //                 Felt::from_hex_unchecked(
-    //                     "0x08808a106dc9e09c29afd24be7cee31edd9f0d27ce0a3469839ef3d09ddfb43",
-    //                 ),
-    //             ],
-    //         },
-    //     };
+        let test_header = Header {
+            rlp: "f90264a0d0dbb039df7728af964ecc414930adaf57c762df78e7818c5e29bdaf98bc30a6a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000006916a87b82333f4245046623b23794c65ca0fe5710ac36eae31f8fd741ec4646295805efde7d5af87f75b6c9f3b478264c03a02351a6bd671aa027fb78d3bfb0e154fe86a39b64050eb9260fae4ae4e9f39488a04432f18e1b2ff54ce5296d462ae0586a71641906412c7e600780953edd1e8c48b901008804404e86016c08119966222d18870c08157b050006544441c05a76c6e28418045100622128069e4936248c041c089a1001130e2a26990416997904927c6491d162d2c30c2f0b08421e806a2438c885562f2b033806657b78228a48802072a3ab2400c2a6212152054c0675708adb824c8800c6511a76e40268a87d00300b64aa46c9949b614428ec20b4d7572247b012914ea7682c14fc030bbcb825c4e881620a04b7ea04ce56480682102200452c00d826a7a04a8d5a49a10036170b4096e12ed52304215a1090210d95ac1654140f600315a14a500e32059106d86162a112123280c0b0200a82062042a0842317040880f06b742256602012b3197d502c808356152c8401c9c38084013ca856846611559099d883010d0d846765746888676f312e32322e30856c696e7578a0a03574c090365f7581fd16fd2144c0de59d64c03bcbfc761ad3cb0e8c567cb438800000000000000008308e316a0c6d2ec3bda594dc497c3092ca167e4449c1b6747a076c8849bcd351add59e68e830600008405240000a07625dff7a19154e26778df000ae2e3de826d28a60f749e453e3ded6e367eeed4".to_string(),
+            proof: HeaderInclusionProof {
+                leaf_idx: 610913,
+                mmr_path: vec![
+                   b256!("d0dbb039df7728af964ecc414930adaf57c762df78e7818c5e29bdaf98bc30a6"),
+                   b256!("56fd87811a4b8130b0ed91ac95df8d09d333889167ce835d655a160dda8f96a0"),
+                   b256!("dcb896bddfd0cad743abde0856eb20894286ab5bd54c72c68be7577749eff562"),
+                   b256!("47ffad32c9cc9b4307b5570392856c5fdc45808bbbca3dc6dda274cf7bdb2e87"),
+                   b256!("4df89b9609861912e2fd4fb0156de1645b4237ea9d2f6b10cfc8da8a9a78fc33"),
+                   b256!("30f39a418cc1ef1750779bc81347ce3b84e5212701cc6052310e8f3da3d426b7"),
+                   b256!("8af50140398972264e6d9bd6fd0d7dc7dce4e257d09781dc29092ecd0f2d77f7"),
+                   b256!("a79e43c7fd3f4f2f31753626cc9d77f99e606d59b42e24b96b4c0bd5b3b89786"),
+                   b256!("be76446f1b2403b198461f7bc1eeb2d97069537bbff2a5baf49aa79902e4bdc9"),
+                   b256!("4c9bb2f62bdfc7e520d6ad852d3250e642f0b2bba2abdc3f3df4546c391ff085"),
+                   b256!("40dba0712aecd975f5a1b62ed1eef38bef26fd73c80c8b0f0d5583312d70696a"),
+                   b256!("940929e13f84c92fd69b49f7df096a4d39f695bbfff7ffca7a571ea6b59b42c0"),
+                   b256!("4ade02805cdd0c1436a62801db791a480063df1aede38e172962764b7648aa11"),
+                   b256!("bc53fae7e8b5bf9288a794979315b42da843cf7d0c671607c052a50c5c8ffa56"),
+                   b256!("ed90b41d5fcda611f2dd98e9aa2278234ffcb3c22aa57890b0a0fd5511eaee26"),
+                   b256!("d5b49334057c35f35bb042975112506396892cc097d7726d9c3c3e7f535566a2"),
+                   b256!("3a68f5d5fcff64a6cdb94d51438127565fc2a8f16257606b0edb0bba13d866fc"),
+                   b256!("0beaa047b0be2e8419486b91d0427225916cf1153823fac922249776833e4a76"),
+                   b256!("0091ac0829cb25940c0af1212187b796950c8c407025a03761e89404a659aba6"),
+                   b256!("aa405e7324b748e592af9a8d0c6de066e33c4234e22d64d1c1ec4fe83d5ce7e5"),
+                   b256!("8c67a1dac6b6ee001287b68ed17340053037fc26e42c331fba131283b61e5605"),
+                   b256!("42b83addf66c9124dc11c908bb7c522347c9ee32c335bf6cb80c2140b9efb336")
+                ],
+            },
+        };
 
-    //     assert!(verify_headers_with_mmr_peaks(test_mmr_meta, test_header).unwrap());
-    // }
+        assert!(verify_headers_with_mmr_peaks(test_mmr_meta, &[test_header]).unwrap());
+    }
 }

@@ -18,3 +18,8 @@ alloy-primitives = { version = "0.8.0", features = ["rlp"] }
 reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
     "std",
 ] }
+
+# TODO: why existance of this doesn't makes any difference on perf
+[patch.crates-io]
+# This patch uses sha3 instead of tiny-keccak. Reduces cycle count for Keccak by 50%.
+alloy-primitives = { git = "https://github.com/sp1-patches/alloy-core", branch = "patch-v0.8.3" }

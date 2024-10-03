@@ -1,11 +1,13 @@
+use alloy_primitives::hex;
 use alloy_rlp::Decodable;
 use alloy_rlp::RlpDecodable;
 use alloy_rlp::RlpEncodable;
 use reth_primitives::{Header, B256, U256};
 use std::error::Error;
 
-pub fn get_state_root(rlp: &mut &[u8]) -> Result<B256, Box<dyn Error>> {
-    let decoded = Header::decode(rlp).unwrap();
+pub fn get_state_root(rlp_string: String) -> Result<B256, Box<dyn Error>> {
+    let rlp = hex::decode(rlp_string).unwrap();
+    let decoded = Header::decode(&mut rlp.as_slice()).unwrap();
     Ok(decoded.state_root)
 }
 
@@ -17,8 +19,10 @@ pub struct Account {
     pub code_hash: B256,
 }
 
-pub fn get_account_info(rlp: &mut &[u8]) -> Result<Account, Box<dyn Error>> {
-    let decoded_account = Account::decode(rlp).unwrap();
+pub fn get_account_info(rlp_string: String) -> Result<Account, Box<dyn Error>> {
+    println!("rlp_string: {}", rlp_string);
+    let rlp = hex::decode(rlp_string).unwrap();
+    let decoded_account = Account::decode(&mut rlp.as_slice()).unwrap();
     Ok(decoded_account)
 }
 

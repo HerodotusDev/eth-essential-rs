@@ -20,8 +20,7 @@ pub fn from_processed_account_to_account_proof(
     let mut proofs = vec![];
     for proof in account.proofs {
         let converted_storage_proof = into_storage_proof(storage.clone());
-        let decoded_account =
-            get_account_info(&mut proof.proof.last().unwrap().to_vec().as_slice()).unwrap();
+        let decoded_account = get_account_info(proof.proof.last().unwrap().to_string()).unwrap();
         let reth_account = AccountInfo {
             balance: decoded_account.balance,
             nonce: decoded_account.nonce,
