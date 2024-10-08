@@ -1,26 +1,12 @@
 use alloy_primitives::B256;
 use alloy_trie::proof::verify_proof;
 use reth_primitives::{hex, Bytes};
-use reth_trie::{AccountProof, Nibbles, StorageProof};
-use serde::{Deserialize, Serialize};
+use reth_trie::{Nibbles, StorageProof};
 
 use crate::{account::HdpAccount, storage::HdpStorage};
 
-/// The account proof with the bytecode.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct AccountProofWithBytecode {
-    /// The account proof.
-    pub proof: AccountProof,
-}
-
-pub fn from_processed_account_to_account_proof(
-    account: HdpAccount,
-    storage: Option<HdpStorage>,
-    state_root: B256,
-) -> bool {
+pub fn verify_account(account: HdpAccount, state_root: B256) -> bool {
     for proof in account.proofs {
-        // TODO: verify storage
-        let _converted_storage_proof = into_storage_proof(storage.clone());
         let key = Bytes::from(hex::decode(account.account_key.clone()).unwrap());
         let nibbles = Nibbles::unpack(key);
         // TODO: need to get rlp encoded account
@@ -37,13 +23,6 @@ pub fn from_processed_account_to_account_proof(
     }
 
     true
-}
-
-impl AccountProofWithBytecode {
-    /// Verifies the account proof against the provided state root.
-    pub fn verify(&self, state_root: B256) -> bool {
-        self.proof.verify(state_root).is_ok()
-    }
 }
 
 pub fn into_storage_proof(storage: Option<HdpStorage>) -> Vec<StorageProof> {

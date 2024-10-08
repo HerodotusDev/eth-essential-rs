@@ -13,7 +13,7 @@ sp1_zkvm::entrypoint!(main);
 use hdp_lib::{
     account::HdpAccount,
     mmr_keccak::{verify_headers_with_mmr_peaks, Header, MmrMeta},
-    mpt::from_processed_account_to_account_proof,
+    mpt::verify_account,
     rlp::get_state_root,
     storage::HdpStorage,
 };
@@ -40,11 +40,7 @@ pub fn main() {
             let state_root = get_state_root(header.rlp).unwrap();
             println!("cycle-tracker-end: rlp");
             println!("cycle-tracker-start: account mpt");
-            is_valid_acc = from_processed_account_to_account_proof(
-                account.clone(),
-                Some(storage.clone()),
-                state_root,
-            );
+            is_valid_acc = verify_account(account.clone(), state_root);
             println!("cycle-tracker-end: account mpt");
         }
         if is_valid_acc {
